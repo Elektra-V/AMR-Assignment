@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-
 import rclpy
 import rosbag2_py
 from rosbag2_py import StorageOptions, ConverterOptions, SequentialReader
@@ -68,15 +67,15 @@ plt.figure(1)
 plot_scan_data(scan_data, timestamps, 'Laser Scan Data (Cartesian)')
 
 
-window_size = 11 # Adjust the window size as needed
-filtered_x = ndimage.median_filter(scan_data[0], window_size)
-filtered_y = ndimage.median_filter(scan_data[1], window_size)
+window_size = 3 # Adjust the window size as needed
+filtered_x = ndimage.uniform_filter(scan_data[0], window_size)
+filtered_y = ndimage.uniform_filter(scan_data[1], window_size)
 
 
 
 # Plot the second figure
 plt.figure(2)
-plot_scan_data([filtered_x, filtered_y], timestamps, 'Laser Scan Data with Median Filter (Cartesian)')
+plot_scan_data([filtered_x, filtered_y], timestamps, 'Laser Scan Data with Mean Filter (Cartesian)')
 
 # Display both figures
 plt.show()
