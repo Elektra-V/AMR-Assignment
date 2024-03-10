@@ -1,8 +1,10 @@
+from typing import Tuple
+
 from nav_msgs.msg import OccupancyGrid, Odometry
 from sensor_msgs.msg import LaserScan
 
 from src.common.constants import Constants
-from src.common.types import CoordinatesTuple, InputMessageFull
+from src.common.types import InputMessageFull
 from src.services.astar_service import AStarService
 from src.services.potential_field_service import PotentialFieldService
 from src.utils.event_bus import EventBus
@@ -16,14 +18,14 @@ class PathPlanningService:
     def __init__(
         self,
         event_bus: EventBus,
-        initial_position: CoordinatesTuple,
-        goal_position: CoordinatesTuple,
+        initial_position: Tuple[float, float],
+        goal_position: Tuple[float, float],
     ) -> None:
         self.__event_bus = event_bus
         self.__current_position = initial_position
         self.__goal_position = goal_position
 
-        self.__astar = AStarService(self.__goal_position)
+        self.__astar = AStarService(self.__goal_position, self.__current_position, 0.45)
         self.__potential_field = PotentialFieldService()
 
     def run_path_planner(self, msg: InputMessageFull):

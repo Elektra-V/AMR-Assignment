@@ -6,7 +6,7 @@ from sensor_msgs.msg import LaserScan
 
 InputMessageFull = OccupancyGrid | Odometry | LaserScan
 Grid = List[List[int]]
-CoordinatesTuple = Tuple[int | float, int | float]
+CoordinatesTuple = Tuple[int, int]
 
 
 @dataclass

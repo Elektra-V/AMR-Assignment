@@ -24,8 +24,7 @@ class SLAMPublisher(Node):
         self._logger.info(f"Publishing command {movement_input}")
         msg = Twist()
 
-        (linear_x, angular_z) = movement_input
-        msg.linear.x = linear_x
-        msg.angular.z = angular_z
+        msg.linear.x = movement_input.linear_velocity_x
+        msg.angular.z = movement_input.angular_velocity_z
 
         self.__publisher.publish(msg)
