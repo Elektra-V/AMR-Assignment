@@ -14,8 +14,8 @@ def main():
 
     path_planning_service = PathPlanningService(
         event_bus=event_bus,
-        initial_position=(-2.0, -3.5),
-        goal_position=(3, -1.5),
+        initial_position=(-2, -3),
+        goal_position=(3, -1),
     )
 
     subscriber = SLAMSubscriber(path_planning_service=path_planning_service)
