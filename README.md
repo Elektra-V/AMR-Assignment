@@ -1,59 +1,76 @@
-# AMR_WS_2024_submission
-this repo is for the project and code version control for the project to be done is AMR course.
+# AMR Final Project
 
+This repository contains the source code to the final project at the AMR.
 
+## Usage
 
-Project Objectives
+### Prerequisites
 
-===============
+In order to use this project, make sure the following prerequisites are met:
 
-The objective of this project is that you deploy some of the functionalities that were discussed during the course on a real robot platform. In particular, we want to have functionalities for path and motion planning, localisation, and environment exploration on the robot.
+1. OS: Ubuntu 22.04 LTS
+2. Python (tested on Python 3.10.12)
+3. ROS2 (use [these](https://gist.github.com/Elektra-V/74e241c97843efe6a5a0cc8e60067bca) Bash scripts)
+4. VSCode, alongside [Python](https://marketplace.visualstudio.com/items?itemName=ms-python.python) and [ROS](https://marketplace.visualstudio.com/items?itemName=ms-iot.vscode-ros) extensions
 
-We will particularly use the Robile platform during the project; you are already familiar with this robot from the simulation you have been using throughout the semester as well as from the few practical lab sessions that we have had.
+Next, create a `.settings.json` file in `.vscode` folder:
 
-Task Description
+```json
+{
+    "python.autoComplete.extraPaths": [
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+    ],
+    "ros.distro": "humble"
+}
+```
 
-==============
+This will ensure access to autocompletion and source code analysis, and it will configure the ROS extension. If needed, reload the window.
 
-The project consists of three parts that are building on each other: (i) path and motion planning, (ii) localisation, and (iii) environment exploration.
+Next, setup a virtual environment and install NumPy:
+```bash
+python3 -m venv venv
+source venv/bin/activate
 
-1. Path and Motion Planning
+# Install NumPy
+pip install numpy
+```
 
-You have already implemented a *potential field planner* in one of your assignments. In this first part of the project, you need to port your implementation to the real robot and ensure that it is working as well as it was in the simulated environment so that you can navigate towards global goals while avoiding obstacles.
+To use the project, source ROS and run the `main.py`:
 
-2. Localisation
+```bash
+source /opt/ros/humble/setup.bash
+python3 main.py
+```
 
-In one of the course lectures, we discussed Monte Carlo localisation as a practical solution to the robot localisation problem in an existing map. In this second part of the project, your objective is to implement your very own particle filter that you then integrate on the Robile. You should implement the simple version of the filter that we discussed in the lecture; however, if you have time and interest, you are free to additionally explore extensions / improvements to the algorithm, for example in the form of the adaptive Monte Carlo approach that we mentioned in the lecture.
+### Running Robile in simulation
 
-3. Environment Exploration
+In order to run the Robile robot in a simulation, enter the following commands in a new terminal window:
 
-The final objective of the project is to incorporate an environment exploration functionality to the robot. This will have to be combined with a SLAM component, namely you will need your exploration component to select poses to explore and a SLAM component that will take care of actually creating a map. The exploration algorithm should ideally select poses at the map fringe (i.e. poses that are at the boundary between the explored and unexplored region), but you are free to explore different pose selection strategies in your implementation.
+```bash
+source /opt/ros/humble/setup.bash
+source ~/ros2_ws/install/setup.bash
+ros2 launch robile_gazebo gazebo_4_wheel.launch.py
+```
 
-Practical Notes and Assumptions
+In order to control the Robile with your keyboard, in another terminal window, enter the following:
 
-===========================
+```bash
+source /opt/ros/humble/setup.bash
+ros2 run teleop_twist_keyboard teleop_twist_keyboard
+```
 
-* For the first two tasks in this project, we need an environment map to be given. For this purpose, you should use an already existing SLAM approach in ROS (such as the `slam_toolbox` that you also used to map simulated environments) to create a map of the environment where you conduct your tests.
-* You should also use an existing SLAM approach for the last part of the project, such that this will need to run in parallel with the exploration component. The selection of poses should thus be done with respect to the most up-to-date map provided by the SLAM algorithm.
+## Testing
 
-Submission Guidelines
+In order to run tests (they should all be in the `test` folder), you will need to set the `PYTHONPATH` variable in order for Python to be able to correctly resolve module imports.
 
-===================
+```bash
+source /opt/ros/humble/setup.bash
+export PYTHONPATH="${pwd}:$PYTHONPATH"
+```
 
-Your submission should be a single text file containing:
-A URL of a repository with all the code that you have developed during the project. Make sure that the repository contains a README file to explain the contents of the repository and provide usage guidelines.
-URLs to videos demonstrating your developed functionalities on the real Robile platform (you can upload these videos anywhere, for example to Google Drive or YouTube). In the videos, make sure that you explicitly show that you are executing your components!
-The file should be uploaded to LEA before the submission deadline. The grading of the project will be done on the basis of this submission.
-
-Demonstration
-
-============
-
-After the submission deadline, each group will also need to present their results in a live demonstration. We will agree on a date for the demonstration at a later date. The live demonstration does not count towards the project grade; it is just there so that you get some live demo experience and so that we can discuss any concrete issues that you have faced in your implementations.
-
-Formalities
-
-=========
-
-Deadline: March 15th, 2024, 23:59 CET
-Project demonstration: ~March 20th, 2024
+Do not use the `unittest` library module, instead, run test files as normal Python programs.
