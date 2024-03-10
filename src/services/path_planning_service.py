@@ -2,7 +2,7 @@ from nav_msgs.msg import OccupancyGrid, Odometry
 from sensor_msgs.msg import LaserScan
 
 from src.common.constants import Constants
-from src.common.types import Coordinates, InputMessageFull
+from src.common.types import CoordinatesTuple, InputMessageFull
 from src.services.astar_service import AStarService
 from src.services.potential_field_service import PotentialFieldService
 from src.utils.event_bus import EventBus
@@ -16,8 +16,8 @@ class PathPlanningService:
     def __init__(
         self,
         event_bus: EventBus,
-        initial_position: Coordinates,
-        goal_position: Coordinates,
+        initial_position: CoordinatesTuple,
+        goal_position: CoordinatesTuple,
     ) -> None:
         self.__event_bus = event_bus
         self.__current_position = initial_position
@@ -39,7 +39,10 @@ class PathPlanningService:
             and self.__latest_odometry is not None
             and self.__latest_scan is not None
         ):
-            path = self.__astar.run_astar(self.__latest_map, self.__current_position)
+            path = self.__astar.run_astar(
+                self.__latest_map,
+                self.__current_position,
+            )
             if len(path) >= 2:
                 self.__current_position = path[1]
 

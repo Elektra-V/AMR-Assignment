@@ -1,6 +1,6 @@
 import rclpy
+from rclpy.executors import MultiThreadedExecutor
 
-from src.common.types import Coordinates
 from src.publishers import SLAMPublisher
 from src.services.path_planning_service import PathPlanningService
 from src.subscribers import SLAMSubscriber
@@ -14,18 +14,22 @@ def main():
 
     path_planning_service = PathPlanningService(
         event_bus=event_bus,
-        initial_position=Coordinates(0, 0),
-        goal_position=Coordinates(10, 4),
+        initial_position=(-2.0, -3.5),
+        goal_position=(3, -1.5),
     )
 
     subscriber = SLAMSubscriber(path_planning_service=path_planning_service)
     publisher = SLAMPublisher(event_bus=event_bus)
-    rclpy.spin(subscriber)
-    rclpy.spin(publisher)
+    executor = MultiThreadedExecutor()
+    executor.add_node(subscriber)
+    executor.add_node(publisher)
 
-    subscriber.destroy_node()
-    publisher.destroy_node()
-    rclpy.shutdown()
+    try:
+        executor.spin()
+    finally:
+        subscriber.destroy_node()
+        publisher.destroy_node()
+        rclpy.shutdown()
 
 
 if __name__ == "__main__":

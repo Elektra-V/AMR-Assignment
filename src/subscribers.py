@@ -4,7 +4,6 @@ from sensor_msgs.msg import LaserScan
 
 from src.common.constants import Constants
 from src.services.path_planning_service import PathPlanningService
-from src.utils.event_bus import EventBus
 
 
 class SLAMSubscriber(Node):
@@ -37,6 +36,8 @@ class SLAMSubscriber(Node):
         self.__lidar_subscription.destroy()
 
     def __map_subscription_callback(self, msg: OccupancyGrid) -> None:
+        self.get_logger().info("Received a map message")
+        self.get_logger().info(f"Map size: {len(msg.data)} cells")
         self.__path_planning_service.run_path_planner(msg)
 
     def __odometry_subscription_callback(self, msg: Odometry) -> None:

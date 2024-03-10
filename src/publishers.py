@@ -21,6 +21,7 @@ class SLAMPublisher(Node):
         )
 
     def __publish_velocity(self, movement_input: TwistMessage) -> None:
+        self._logger.info(f"Publishing command {movement_input}")
         msg = Twist()
 
         (linear_x, angular_z) = movement_input
