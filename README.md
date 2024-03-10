@@ -13,7 +13,7 @@ In order to use this project, make sure the following prerequisites are met:
 3. ROS2 (use [these](https://gist.github.com/Elektra-V/74e241c97843efe6a5a0cc8e60067bca) Bash scripts)
 4. VSCode, alongside [Python](https://marketplace.visualstudio.com/items?itemName=ms-python.python) and [ROS](https://marketplace.visualstudio.com/items?itemName=ms-iot.vscode-ros) extensions
 
-Next, create a `.settings.json` file in `.vscode` folder:
+Next, create a `settings.json` file in `.vscode` folder:
 
 ```json
 {
