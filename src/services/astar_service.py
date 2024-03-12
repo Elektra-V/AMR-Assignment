@@ -1,9 +1,9 @@
 from queue import PriorityQueue
-from typing import Dict, List, Tuple
+from typing import List, Tuple
 
 from nav_msgs.msg import OccupancyGrid
 
-from src.common.coordinate_converter import world_to_grid
+from src.common.coordinate_converter import grid_to_world, world_to_grid
 from src.common.types import CoordinatesTuple, Grid
 
 
@@ -16,18 +16,33 @@ class AStarService:
     ) -> List[Tuple[float, float]]:
         start = world_to_grid(current_position[0], current_position[1], map)
         goal = world_to_grid(goal_position[0], goal_position[1], map)
-        return self.__astar_search(start, goal, map)
+
+        path = self.__astar_search(start, goal, map)
+        print(len(path))
+        path_world = []
+        for item in path:
+            path_world.append(grid_to_world(item[0], item[1], map))
+
+        return path_world
+
+    def convert_occupancy_grid_to_grid(self, map: OccupancyGrid) -> Grid:
+        width, height = map.info.width, map.info.height
+        grid: Grid = [
+            [0 if value < 60 else 1 for value in map.data[i * width : (i + 1) * width]]
+            for i in range(height)
+        ]
+        return grid
 
     def __astar_search(
         self,
         start: CoordinatesTuple,
         goal: CoordinatesTuple,
         map: OccupancyGrid,
-    ) -> List[Tuple[float, float]]:
+    ) -> List[Tuple[int, int]]:
         closed = set()
         fringe = PriorityQueue()
         fringe.put((self.__heuristic(start, goal), start, []))
-        grid = self.__convert_occupancy_grid_to_grid(map)
+        grid = self.convert_occupancy_grid_to_grid(map)
 
         while not fringe.empty():
             _, current_state, path = fringe.get()
@@ -67,12 +82,5 @@ class AStarService:
             and 0 <= node[1] + dy < len(grid[0])
             and grid[node[0] + dx][node[1] + dy] == 0
         ]
-        return neighbors
 
-    def __convert_occupancy_grid_to_grid(self, map: OccupancyGrid) -> Grid:
-        width, height = map.info.width, map.info.height
-        grid: Grid = [
-            [0 if value < 60 else 1 for value in map.data[i * width : (i + 1) * width]]
-            for i in range(height)
-        ]
-        return grid
+        return neighbors
