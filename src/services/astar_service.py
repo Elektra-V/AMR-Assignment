@@ -1,70 +1,77 @@
 from queue import PriorityQueue
-from typing import Dict, List, Tuple
+from typing import List, Tuple
 
 from nav_msgs.msg import OccupancyGrid
 
+from src.common.coordinate_converter import grid_to_world, world_to_grid
 from src.common.types import CoordinatesTuple, Grid
 
 
 class AStarService:
-    def __init__(
-        self,
-        goal_position_world: Tuple[float, float],
-        origin: Tuple[float, float],
-        resolution: float,
-    ):
-        self.goal_position_world = goal_position_world
-        self.origin = origin
-        self.resolution = resolution
-        self.goal_position = self.__world_to_grid(goal_position_world)
-
     def run_astar(
-        self, map: OccupancyGrid, start_world: Tuple[float, float]
-    ) -> List[CoordinatesTuple]:
-        start = self.__world_to_grid(start_world)
-        grid = self.__convert_occupancy_grid_to_grid(map)
-        return self.__astar_search(grid, start, self.goal_position)
+        self,
+        current_position: Tuple[float, float],
+        goal_position: Tuple[float, float],
+        map: OccupancyGrid,
+    ) -> List[Tuple[float, float]]:
+        start = world_to_grid(current_position[0], current_position[1], map)
+        goal = world_to_grid(goal_position[0], goal_position[1], map)
 
-    def __world_to_grid(
-        self, world_coordinates: Tuple[float, float]
-    ) -> CoordinatesTuple:
-        grid_x = int((world_coordinates[0] - self.origin[0]) / self.resolution)
-        grid_y = int((world_coordinates[1] - self.origin[1]) / self.resolution)
-        return grid_x, grid_y
+        path = self.__astar_search(start, goal, map)
+        print(len(path))
+        path_world = []
+        for item in path:
+            path_world.append(grid_to_world(item[0], item[1], map))
 
-    def __convert_occupancy_grid_to_grid(self, map: OccupancyGrid) -> Grid:
+        return path_world
+
+    def convert_occupancy_grid_to_grid(self, map: OccupancyGrid) -> Grid:
         width, height = map.info.width, map.info.height
         grid: Grid = [
-            [0 if value == 0 else 1 for value in map.data[i * width : (i + 1) * width]]
+            [0 if value < 60 else 1 for value in map.data[i * width : (i + 1) * width]]
             for i in range(height)
         ]
         return grid
 
     def __astar_search(
-        self, grid: Grid, start: CoordinatesTuple, goal: CoordinatesTuple
-    ) -> List[CoordinatesTuple]:
-        frontier = PriorityQueue()
-        frontier.put((0, start))
-        came_from: Dict[CoordinatesTuple, CoordinatesTuple] = {start: None}
-        cost_so_far: Dict[CoordinatesTuple, int] = {start: 0}
+        self,
+        start: CoordinatesTuple,
+        goal: CoordinatesTuple,
+        map: OccupancyGrid,
+    ) -> List[Tuple[int, int]]:
+        closed = set()
+        fringe = PriorityQueue()
+        fringe.put((self.__heuristic(start, goal), start, []))
+        grid = self.convert_occupancy_grid_to_grid(map)
 
-        while not frontier.empty():
-            current = frontier.get()[1]
+        while not fringe.empty():
+            _, current_state, path = fringe.get()
+            if goal == current_state:
+                return path
 
-            if current == goal:
-                break
+            closed.add(current_state)
 
-            for next in self.__get_neighbors(grid, current):
-                new_cost = cost_so_far[current] + 1
-                if next not in cost_so_far or new_cost < cost_so_far[next]:
-                    cost_so_far[next] = new_cost
-                    priority = new_cost + self.__heuristic(goal, next)
-                    frontier.put((priority, next))
-                    came_from[next] = current
+            for next_state in self.__get_possible_moves(grid, current_state):
+                if next_state in closed:
+                    continue
 
-        return self.__reconstruct_path(came_from, start, goal)
+                new_path = path + [next_state]
+                f_cost = len(new_path) + self.__heuristic(next_state, goal)
 
-    def __get_neighbors(
+                if any(
+                    next_state == state and cost <= f_cost
+                    for cost, state, _ in fringe.queue
+                ):
+                    continue
+
+                fringe.put((f_cost, next_state, new_path))
+
+        return []
+
+    def __heuristic(self, a: CoordinatesTuple, b: CoordinatesTuple) -> float:
+        return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+    def __get_possible_moves(
         self, grid: Grid, node: CoordinatesTuple
     ) -> List[CoordinatesTuple]:
         directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
@@ -75,21 +82,5 @@ class AStarService:
             and 0 <= node[1] + dy < len(grid[0])
             and grid[node[0] + dx][node[1] + dy] == 0
         ]
+
         return neighbors
-
-    def __heuristic(self, a: CoordinatesTuple, b: CoordinatesTuple) -> float:
-        return abs(a[0] - b[0]) + abs(a[1] - b[1])
-
-    def __reconstruct_path(
-        self,
-        came_from: Dict[CoordinatesTuple, CoordinatesTuple],
-        start: CoordinatesTuple,
-        goal: CoordinatesTuple,
-    ) -> List[CoordinatesTuple]:
-        current = goal
-        path = [current]
-        while current != start:
-            current = came_from[current]
-            path.append(current)
-        path.reverse()
-        return path
