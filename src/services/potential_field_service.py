@@ -1,4 +1,5 @@
 import math
+from typing import Tuple
 
 from geometry_msgs.msg import Quaternion
 from nav_msgs.msg import Odometry
@@ -9,15 +10,15 @@ from src.common.types import CoordinatesTuple, TwistMessage
 MAX_LINEAR_VELOCITY = 2.0
 MAX_ANGULAR_VELOCITY = 1.0
 ATTRACTIVE_GAIN = 2.0
-REPULSIVE_GAIN = 0.05
-REPULSIVE_DISTANCE = 0.1
+REPULSIVE_GAIN = 0.01
+REPULSIVE_DISTANCE = 0.5
 
 
 class PotentialFieldService:
     def run_potential_field(
         self,
-        current_position: CoordinatesTuple,
-        goal: CoordinatesTuple,
+        current_position: Tuple[float, float],
+        goal: Tuple[float, float],
         odometry: Odometry,
         laser_scan: LaserScan,
     ) -> TwistMessage:
@@ -42,8 +43,8 @@ class PotentialFieldService:
 
     def __calculate_attractive_force(
         self,
-        current_position: CoordinatesTuple,
-        goal: CoordinatesTuple,
+        current_position: Tuple[float, float],
+        goal: Tuple[float, float],
         odometry: Odometry,
     ) -> TwistMessage:
         yaw = self.__quaternion_to_euler(odometry.pose.pose.orientation)

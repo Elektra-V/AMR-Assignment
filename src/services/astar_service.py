@@ -1,110 +1,78 @@
-import heapq
+from queue import PriorityQueue
 from typing import Dict, List, Tuple
+
+from nav_msgs.msg import OccupancyGrid
+
+from src.common.coordinate_converter import world_to_grid
+from src.common.types import CoordinatesTuple, Grid
 
 
 class AStarService:
-    def __init__(self, grid_resolution: float):
-        self.__grid_resolution = grid_resolution
-        self.__motions = [
-            (1, 0),
-            (0, 1),
-            (-1, 0),
-            (0, -1),
-            (1, 1),
-            (-1, -1),
-            (1, -1),
-            (-1, 1),
-        ]
-
     def run_astar(
         self,
-        obstacles: List[Tuple[float, float]],
         current_position: Tuple[float, float],
         goal_position: Tuple[float, float],
-    ) -> Tuple[int, int]:
-        obstacles_after_resolution = []
-        for obstacle in obstacles:
-            obstacles_after_resolution.append(
-                (
-                    int(obstacle[0] / self.__grid_resolution),
-                    int(obstacle[1] / self.__grid_resolution),
-                )
-            )
-        current_position_after_resolution = (
-            int(current_position[0] / self.__grid_resolution),
-            int(current_position[1] / self.__grid_resolution),
-        )
-        goal_position_after_resolution = (
-            int(goal_position[0] / self.__grid_resolution),
-            int(goal_position[1] / self.__grid_resolution),
-        )
-
-        path = self.__astar_search(
-            obstacles_after_resolution,
-            current_position_after_resolution,
-            goal_position_after_resolution,
-        )
-        return path[1] if len(path) > 1 else current_position_after_resolution
+        map: OccupancyGrid,
+    ) -> List[Tuple[float, float]]:
+        start = world_to_grid(current_position[0], current_position[1], map)
+        goal = world_to_grid(goal_position[0], goal_position[1], map)
+        return self.__astar_search(start, goal, map)
 
     def __astar_search(
         self,
-        obstacles: List[Tuple[int, int]],
-        start: Tuple[int, int],
-        goal: Tuple[int, int],
-    ) -> List[Tuple[int, int]]:
-        open_set = []
-        came_from = {}
-        g_score = {start: 0}
-        f_score = {start: self.__heuristic(start, goal)}
+        start: CoordinatesTuple,
+        goal: CoordinatesTuple,
+        map: OccupancyGrid,
+    ) -> List[Tuple[float, float]]:
+        closed = set()
+        fringe = PriorityQueue()
+        fringe.put((self.__heuristic(start, goal), start, []))
+        grid = self.__convert_occupancy_grid_to_grid(map)
 
-        heapq.heappush(open_set, (f_score[start], start))
+        while not fringe.empty():
+            _, current_state, path = fringe.get()
+            if goal == current_state:
+                return path
 
-        while open_set:
-            _, current = heapq.heappop(open_set)
+            closed.add(current_state)
 
-            if current == goal:
-                return self.__reconstruct_path(came_from, current)
+            for next_state in self.__get_possible_moves(grid, current_state):
+                if next_state in closed:
+                    continue
 
-            for neighbor in self.__get_neighbors(obstacles, current):
-                tentative_g_score = g_score[current]
+                new_path = path + [next_state]
+                f_cost = len(new_path) + self.__heuristic(next_state, goal)
 
-                if neighbor not in g_score or tentative_g_score < g_score[neighbor]:
-                    came_from[neighbor] = current
-                    g_score[neighbor] = tentative_g_score
-                    f_score[neighbor] = g_score[neighbor] + self.__heuristic(
-                        neighbor, goal
-                    )
-                    if neighbor not in [i[1] for i in open_set]:
-                        heapq.heappush(open_set, (f_score[neighbor], neighbor))
+                if any(
+                    next_state == state and cost <= f_cost
+                    for cost, state, _ in fringe.queue
+                ):
+                    continue
+
+                fringe.put((f_cost, next_state, new_path))
 
         return []
 
-    def __get_neighbors(
-        self, obstacles: List[Tuple[int, int]], node: Tuple[int, int]
-    ) -> List[Tuple[int, int]]:
+    def __heuristic(self, a: CoordinatesTuple, b: CoordinatesTuple) -> float:
+        return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+    def __get_possible_moves(
+        self, grid: Grid, node: CoordinatesTuple
+    ) -> List[CoordinatesTuple]:
+        directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
         neighbors = [
-            (node[0] + motion[0], node[1] + motion[1]) for motion in self.__motions
+            (node[0] + dx, node[1] + dy)
+            for dx, dy in directions
+            if 0 <= node[0] + dx < len(grid)
+            and 0 <= node[1] + dy < len(grid[0])
+            and grid[node[0] + dx][node[1] + dy] == 0
         ]
-        return [
-            n
-            for n in neighbors
-            if n not in obstacles
-            and 0 <= n[0] < self.__grid_resolution
-            and 0 <= n[1] < self.__grid_resolution
+        return neighbors
+
+    def __convert_occupancy_grid_to_grid(self, map: OccupancyGrid) -> Grid:
+        width, height = map.info.width, map.info.height
+        grid: Grid = [
+            [0 if value < 60 else 1 for value in map.data[i * width : (i + 1) * width]]
+            for i in range(height)
         ]
-
-    def __heuristic(self, node: Tuple[int, int], goal: Tuple[int, int]) -> int:
-        # Manhattan distance for heuristic
-        return abs(goal[0] - node[0]) + abs(goal[1] - node[1])
-
-    def __reconstruct_path(
-        self,
-        came_from: Dict[Tuple[int, int], Tuple[int, int]],
-        current: Tuple[int, int],
-    ) -> List[Tuple[int, int]]:
-        total_path = [current]
-        while current in came_from:
-            current = came_from[current]
-            total_path.append(current)
-        total_path.reverse()
-        return total_path
+        return grid
