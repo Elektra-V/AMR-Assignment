@@ -18,7 +18,6 @@ class AStarService:
         goal = world_to_grid(goal_position[0], goal_position[1], map)
 
         path = self.__astar_search(start, goal, map)
-        print(len(path))
         path_world = []
         for item in path:
             path_world.append(grid_to_world(item[0], item[1], map))
@@ -28,7 +27,10 @@ class AStarService:
     def convert_occupancy_grid_to_grid(self, map: OccupancyGrid) -> Grid:
         width, height = map.info.width, map.info.height
         grid: Grid = [
-            [0 if value < 60 else 1 for value in map.data[i * width : (i + 1) * width]]
+            [
+                1 if value == 100 else 0
+                for value in map.data[i * width : (i + 1) * width]
+            ]
             for i in range(height)
         ]
         return grid
@@ -74,7 +76,16 @@ class AStarService:
     def __get_possible_moves(
         self, grid: Grid, node: CoordinatesTuple
     ) -> List[CoordinatesTuple]:
-        directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+        directions = [
+            (-1, 0),
+            (-1, 1),
+            (0, 1),
+            (1, 1),
+            (1, 0),
+            (1, -1),
+            (0, -1),
+            (-1, -1),
+        ]
         neighbors = [
             (node[0] + dx, node[1] + dy)
             for dx, dy in directions

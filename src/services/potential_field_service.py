@@ -5,13 +5,8 @@ from geometry_msgs.msg import Quaternion
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import LaserScan
 
-from src.common.types import CoordinatesTuple, TwistMessage
-
-MAX_LINEAR_VELOCITY = 2.0
-MAX_ANGULAR_VELOCITY = 1.0
-ATTRACTIVE_GAIN = 2.0
-REPULSIVE_GAIN = 0.01
-REPULSIVE_DISTANCE = 0.5
+from src.common.constants import Constants
+from src.common.types import TwistMessage
 
 
 class PotentialFieldService:
@@ -31,11 +26,11 @@ class PotentialFieldService:
 
         return TwistMessage(
             linear_velocity_x=min(
-                MAX_LINEAR_VELOCITY,
+                Constants.MAX_LINEAR_VELOCITY,
                 attractive_force.linear_velocity_x + repulsive_force.linear_velocity_x,
             ),
             angular_velocity_z=min(
-                MAX_ANGULAR_VELOCITY,
+                Constants.MAX_ANGULAR_VELOCITY,
                 attractive_force.angular_velocity_z
                 + repulsive_force.angular_velocity_z,
             ),
@@ -55,13 +50,13 @@ class PotentialFieldService:
         relative_angle_to_goal = angle_to_goal - yaw
 
         distance_to_goal = math.sqrt(delta_x**2 + delta_y**2)
-        linear_velocity = ATTRACTIVE_GAIN * distance_to_goal
+        linear_velocity = Constants.ATTRACTIVE_GAIN * distance_to_goal
 
-        angular_velocity = ATTRACTIVE_GAIN * relative_angle_to_goal
+        angular_velocity = Constants.ATTRACTIVE_GAIN * relative_angle_to_goal
 
         return TwistMessage(
-            linear_velocity_x=min(MAX_LINEAR_VELOCITY, linear_velocity),
-            angular_velocity_z=min(MAX_ANGULAR_VELOCITY, angular_velocity),
+            linear_velocity_x=min(Constants.MAX_LINEAR_VELOCITY, linear_velocity),
+            angular_velocity_z=min(Constants.MAX_ANGULAR_VELOCITY, angular_velocity),
         )
 
     def __calculate_repulsive_force(
@@ -72,11 +67,11 @@ class PotentialFieldService:
         repulsive_angular_velocity_z = 0.0
 
         for i, range_value in enumerate(laser_scan.ranges):
-            if 0 < range_value < REPULSIVE_DISTANCE:
+            if 0 < range_value < Constants.REPULSIVE_DISTANCE:
                 obstacle_angle = laser_scan.angle_min + i * laser_scan.angle_increment
                 relative_obstacle_angle = obstacle_angle - yaw
 
-                force_magnitude = REPULSIVE_GAIN / range_value
+                force_magnitude = Constants.REPULSIVE_GAIN / range_value
                 repulsive_linear_velocity_x += force_magnitude * math.cos(
                     relative_obstacle_angle
                 )

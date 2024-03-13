@@ -82,6 +82,10 @@ ros2 run nav2_map_server map_saver_cli -f my_map
 
 This will create two files, the actual map file (.pgm file) and its description (YAML file). Create a folder called `maps` and copy-paste them inside (we are not checking in the maps into version control).
 
+If done properly, your map should look something like this:
+
+![Our group's map for simulation](./assets/amr-simulation-map.png)
+
 ### Running on Robile
 
 In the first terminal window, launch Robile in simulation (refer to command above). In the second terminal window, launch the program:

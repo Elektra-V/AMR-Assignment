@@ -1,5 +1,4 @@
-import math
-from typing import List, Tuple
+from typing import Tuple
 
 from nav_msgs.msg import OccupancyGrid, Odometry
 from sensor_msgs.msg import LaserScan
@@ -9,8 +8,6 @@ from src.common.types import InputMessageFull
 from src.services.astar_service import AStarService
 from src.services.potential_field_service import PotentialFieldService
 from src.utils.event_bus import EventBus
-
-REPULSIVE_DISTANCE = 0.5
 
 
 class PathPlanningService:
@@ -49,6 +46,7 @@ class PathPlanningService:
                 self.__goal_position,
                 self.__latest_map,
             )
+            print(path)
             if len(path) >= 2:
                 self.__current_position = path[1]
 
