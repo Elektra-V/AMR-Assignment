@@ -1,3 +1,4 @@
+import heapq
 from queue import PriorityQueue
 from typing import List, Tuple
 
@@ -18,10 +19,7 @@ class AStarService:
         goal = world_to_grid(goal_position[0], goal_position[1], map)
 
         path = self.__astar_search(start, goal, map)
-        path_world = []
-        for item in path:
-            path_world.append(grid_to_world(item[0], item[1], map))
-
+        path_world = [grid_to_world(x, y, map) for x, y in path] if path else []
         return path_world
 
     def convert_occupancy_grid_to_grid(self, map: OccupancyGrid) -> Grid:
@@ -41,57 +39,43 @@ class AStarService:
         goal: CoordinatesTuple,
         map: OccupancyGrid,
     ) -> List[Tuple[int, int]]:
+        neighbors = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
         closed = set()
-        fringe = PriorityQueue()
-        fringe.put((self.__heuristic(start, goal), start, []))
-        grid = self.convert_occupancy_grid_to_grid(map)
+        came_from = {}
+        gscore = {start: 0}
+        fscore = {start: self.__heuristic(start, goal)}
+        oheap = []
 
-        while not fringe.empty():
-            _, current_state, path = fringe.get()
-            if goal == current_state:
-                return path
+        heapq.heappush(oheap, (fscore[start], start))
 
-            closed.add(current_state)
+        while oheap:
+            current = heapq.heappop(oheap)[1]
+            
+            if current == goal:
+                data = []
+                while current in came_from:
+                    data.append(current)
+                    current = came_from[current]
+                data.append(start)
+                return data[::-1]
+            
+            closed.add(current)
 
-            for next_state in self.__get_possible_moves(grid, current_state):
-                if next_state in closed:
+            for i, j in neighbors:
+                neighbor = current[0] + i, current[1] + j
+                tentative_g_score = gscore[current] + self.heuristic(current, neighbor)
+                
+                if 0 <= neighbor[0] < len(map) and 0 <= neighbor[1] < len(map[0]) and map[neighbor[0]][neighbor[1]] == 0:
+                    if neighbor in closed and tentative_g_score >= gscore.get(neighbor, float('inf')):
+                        continue
+                    if tentative_g_score < gscore.get(neighbor, float('inf')) or neighbor not in [i[1] for i in oheap]:
+                        came_from[neighbor] = current
+                        gscore[neighbor] = tentative_g_score
+                        fscore[neighbor] = tentative_g_score + self.heuristic(neighbor, goal)
+                        heapq.heappush(oheap, (fscore[neighbor], neighbor))
+                else:
                     continue
-
-                new_path = path + [next_state]
-                f_cost = len(new_path) + self.__heuristic(next_state, goal)
-
-                if any(
-                    next_state == state and cost <= f_cost
-                    for cost, state, _ in fringe.queue
-                ):
-                    continue
-
-                fringe.put((f_cost, next_state, new_path))
-
-        return []
+        return False
 
     def __heuristic(self, a: CoordinatesTuple, b: CoordinatesTuple) -> float:
         return abs(a[0] - b[0]) + abs(a[1] - b[1])
-
-    def __get_possible_moves(
-        self, grid: Grid, node: CoordinatesTuple
-    ) -> List[CoordinatesTuple]:
-        directions = [
-            (-1, 0),
-            (-1, 1),
-            (0, 1),
-            (1, 1),
-            (1, 0),
-            (1, -1),
-            (0, -1),
-            (-1, -1),
-        ]
-        neighbors = [
-            (node[0] + dx, node[1] + dy)
-            for dx, dy in directions
-            if 0 <= node[0] + dx < len(grid)
-            and 0 <= node[1] + dy < len(grid[0])
-            and grid[node[0] + dx][node[1] + dy] == 0
-        ]
-
-        return neighbors
