@@ -1,12 +1,10 @@
 import heapq
-from queue import PriorityQueue
 from typing import List, Tuple
 
 from nav_msgs.msg import OccupancyGrid
 
 from src.common.coordinate_converter import grid_to_world, world_to_grid
 from src.common.types import CoordinatesTuple, Grid
-
 
 class AStarService:
     def run_astar(
@@ -50,28 +48,23 @@ class AStarService:
 
         while oheap:
             current = heapq.heappop(oheap)[1]
-            
+
             if current == goal:
-                data = []
-                while current in came_from:
-                    data.append(current)
-                    current = came_from[current]
-                data.append(start)
-                return data[::-1]
-            
+                return self.reconstruct_path(came_from, start, goal)
+
             closed.add(current)
 
             for i, j in neighbors:
                 neighbor = current[0] + i, current[1] + j
-                tentative_g_score = gscore[current] + self.heuristic(current, neighbor)
-                
-                if 0 <= neighbor[0] < len(map) and 0 <= neighbor[1] < len(map[0]) and map[neighbor[0]][neighbor[1]] == 0:
+                tentative_g_score = gscore[current] + self.__heuristic(current, neighbor)
+
+                if 0 <= neighbor[0] < map.info.width and 0 <= neighbor[1] < map.info.height and map.data[neighbor[1] * map.info.width + neighbor[0]] == 0:
                     if neighbor in closed and tentative_g_score >= gscore.get(neighbor, float('inf')):
                         continue
                     if tentative_g_score < gscore.get(neighbor, float('inf')) or neighbor not in [i[1] for i in oheap]:
                         came_from[neighbor] = current
                         gscore[neighbor] = tentative_g_score
-                        fscore[neighbor] = tentative_g_score + self.heuristic(neighbor, goal)
+                        fscore[neighbor] = tentative_g_score + self.__heuristic(neighbor, goal)
                         heapq.heappush(oheap, (fscore[neighbor], neighbor))
                 else:
                     continue
@@ -79,3 +72,12 @@ class AStarService:
 
     def __heuristic(self, a: CoordinatesTuple, b: CoordinatesTuple) -> float:
         return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+    def reconstruct_path(self, came_from: dict, start: CoordinatesTuple, goal: CoordinatesTuple) -> List[Tuple[int, int]]:
+        current = goal
+        path = []
+        while current in came_from and current != start:
+            path.append(current)
+            current = came_from[current]
+        path.reverse()
+        return path
