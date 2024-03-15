@@ -6,6 +6,7 @@ from nav_msgs.msg import OccupancyGrid
 from src.common.coordinate_converter import grid_to_world, world_to_grid
 from src.common.types import CoordinatesTuple, Grid
 
+
 class AStarService:
     def run_astar(
         self,
@@ -22,11 +23,9 @@ class AStarService:
 
     def convert_occupancy_grid_to_grid(self, map: OccupancyGrid) -> Grid:
         width, height = map.info.width, map.info.height
+
         grid: Grid = [
-            [
-                1 if value == 100 else 0
-                for value in map.data[i * width : (i + 1) * width]
-            ]
+            [1 if value >= 50 else 0 for value in map.data[i * width : (i + 1) * width]]
             for i in range(height)
         ]
         return grid
@@ -36,14 +35,22 @@ class AStarService:
         start: CoordinatesTuple,
         goal: CoordinatesTuple,
         map: OccupancyGrid,
-    ) -> List[Tuple[int, int]]:
-        neighbors = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
+    ):
+        neighbors = [
+            (0, 1),
+            (0, -1),
+            (1, 0),
+            (-1, 0),
+            (1, 1),
+            (1, -1),
+            (-1, 1),
+            (-1, -1),
+        ]
         closed = set()
         came_from = {}
-        gscore = {start: 0}
+        gscore = {start: 0.0}
         fscore = {start: self.__heuristic(start, goal)}
         oheap = []
-
         heapq.heappush(oheap, (fscore[start], start))
 
         while oheap:
@@ -56,24 +63,40 @@ class AStarService:
 
             for i, j in neighbors:
                 neighbor = current[0] + i, current[1] + j
-                tentative_g_score = gscore[current] + self.__heuristic(current, neighbor)
-
-                if 0 <= neighbor[0] < map.info.width and 0 <= neighbor[1] < map.info.height and map.data[neighbor[1] * map.info.width + neighbor[0]] == 0:
-                    if neighbor in closed and tentative_g_score >= gscore.get(neighbor, float('inf')):
-                        continue
-                    if tentative_g_score < gscore.get(neighbor, float('inf')) or neighbor not in [i[1] for i in oheap]:
-                        came_from[neighbor] = current
-                        gscore[neighbor] = tentative_g_score
-                        fscore[neighbor] = tentative_g_score + self.__heuristic(neighbor, goal)
-                        heapq.heappush(oheap, (fscore[neighbor], neighbor))
-                else:
+                if not (
+                    0 <= neighbor[0] < map.info.width
+                    and 0 <= neighbor[1] < map.info.height
+                ):
                     continue
+
+                diagonal = abs(i) + abs(j) == 2
+                tentative_g_score = gscore[current] + (
+                    self.__heuristic(current, neighbor) + (1.4 if diagonal else 1.0)
+                )
+
+                if (
+                    map.data[neighbor[1] * map.info.width + neighbor[0]] != 0
+                    or neighbor in closed
+                ):
+                    continue
+
+                if tentative_g_score < gscore.get(neighbor, float("inf")):
+                    came_from[neighbor] = current
+                    gscore[neighbor] = tentative_g_score
+                    fscore[neighbor] = tentative_g_score + self.__heuristic(
+                        neighbor, goal
+                    )
+                    if neighbor not in {n[1] for n in oheap}:
+                        heapq.heappush(oheap, (fscore[neighbor], neighbor))
+
         return False
 
     def __heuristic(self, a: CoordinatesTuple, b: CoordinatesTuple) -> float:
         return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
-    def reconstruct_path(self, came_from: dict, start: CoordinatesTuple, goal: CoordinatesTuple) -> List[Tuple[int, int]]:
+    def reconstruct_path(
+        self, came_from: dict, start: CoordinatesTuple, goal: CoordinatesTuple
+    ) -> List[Tuple[int, int]]:
         current = goal
         path = []
         while current in came_from and current != start:

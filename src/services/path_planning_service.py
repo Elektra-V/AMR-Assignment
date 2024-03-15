@@ -18,6 +18,8 @@ class PathPlanningService:
     def __init__(
         self,
         event_bus: EventBus,
+        astar_service: AStarService,
+        potential_field_service: PotentialFieldService,
         initial_position: Tuple[float, float],
         goal_position: Tuple[float, float],
     ) -> None:
@@ -25,8 +27,8 @@ class PathPlanningService:
         self.__current_position = initial_position
         self.__goal_position = goal_position
 
-        self.__astar = AStarService()
-        self.__potential_field = PotentialFieldService()
+        self.__astar_service = astar_service
+        self.__potential_field_service = potential_field_service
 
     def run_path_planner(self, msg: InputMessageFull) -> None:
         if isinstance(msg, OccupancyGrid):
@@ -41,7 +43,7 @@ class PathPlanningService:
             and self.__latest_odometry is not None
             and self.__latest_scan is not None
         ):
-            path = self.__astar.run_astar(
+            path = self.__astar_service.run_astar(
                 self.__current_position,
                 self.__goal_position,
                 self.__latest_map,
@@ -50,7 +52,7 @@ class PathPlanningService:
             if len(path) >= 2:
                 self.__current_position = path[1]
 
-                twist_message = self.__potential_field.run_potential_field(
+                twist_message = self.__potential_field_service.run_potential_field(
                     self.__current_position,
                     self.__goal_position,
                     self.__latest_odometry,
