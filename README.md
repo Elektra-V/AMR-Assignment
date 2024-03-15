@@ -1,6 +1,24 @@
 # AMR Final Project
 
-This repository contains the source code to the final project at the AMR.
+This repository hosts the source code for the final project at the Autonomous Mobile Robots (AMR) course. Our work encapsulates the integration of sophisticated navigation capabilities on the Robile platform, including path planning, localization, and environment exploration utilizing ROS2 and custom-developed algorithms.
+
+## Project Structure and Overview
+
+- `assets/`: Contains visual resources and diagrams, such as `amr-simulation-map.png`, which illustrate the simulated environment and help in visualizing the robot's operational context.  
+- `src/`: The core of our project, structured into specific modules for organization and clarity:
+  - `common/`: Defines shared resources across the project, including constants and utility functions that form the backbone of our navigation algorithms.
+  - `services/`: Houses the core functionalities crucial to Robile's navigation and exploration capabilities:
+    - `astar_service.py`: Implements the A* algorithm, enabling global path planning by finding the most efficient path between two points.
+    - `exploration_service.py`: Manages the strategy for autonomous exploration, allowing Robile to intelligently navigate and map unknown environments.
+    - `frontier_service.py`: Focuses on detecting and managing frontiers, which are boundaries between explored and unexplored areas, facilitating systematic exploration.
+    - `localization_service.py`: Implements a custom particle filter algorithm for precise localization, using sensor data to accurately estimate Robile's position within its environment.
+    - `path_planning_service.py`: Provides mechanisms for dynamic path planning, integrating various algorithms to navigate efficiently while avoiding obstacles.
+    - `potential_field_service.py`: Utilizes the potential field method for local navigation, directing the robot away from obstacles and towards its goal through simulated forces.
+- `utils/`: Supports the main services with additional utilities like an event bus system for inter-component communication.
+  
+- `test/`: Contains unit tests for validating the functionality and reliability of our algorithms and utilities, ensuring robustness and efficiency in the system's operations.
+  
+- `main.py`: Serves as the entry point to our application, orchestrating the initialization and interaction of various components within the system.
 
 ## Usage (Development & Simulation)
 
@@ -40,7 +58,53 @@ source /opt/ros/humble/setup.bash
 source ~/ros2_ws/install/setup.bash
 ```
 
-### Setup: Creating a Map
+### Running on Robile
+
+Our design of the project is simple: first explore the environment and build a map, and then, using the generated map, we manually provide start/goal, and let the robot find its way.
+
+#### Exploration mode
+
+In the first terminal window, launch Robile in simulation (refer to command above). For the exploration mode to work, make sure you set the following environment variable BEFORE launching the program:
+
+```bash
+export EXPLORATION=true
+python3 main.py
+```
+
+#### Finding the goal mode
+
+In the first terminal window, launch Robile in simulation (refer to command above). In the second terminal window, launch the program:
+
+```bash
+python3 main.py
+```
+
+You will need to start the map server and then configure + activate it. For that, first start the server:
+
+```bash
+cd maps
+ros2 run nav2_map_server map_server --ros-args -p yaml_filename:="my_map.yaml"
+```
+
+To configure and activate the map server, in another terminal window, execute the following:
+
+```bash
+ros2 lifecycle set /map_server configure
+ros2 lifecycle set /map_server activate
+```
+
+## Testing
+
+In order to run tests (they should all be in the `test` folder), you will need to set the `PYTHONPATH` variable in order for Python to be able to correctly resolve module imports.
+
+```bash
+source /opt/ros/humble/setup.bash
+export PYTHONPATH="${pwd}:$PYTHONPATH"
+```
+
+Do not use the `unittest` library module, instead, run test files as normal Python programs.
+
+### Setup: Creating a Map For Testing
 
 You would hopefully only need to go through this step once. In order to create a map, it's important to following the following instructions.
 
@@ -82,35 +146,6 @@ ros2 run nav2_map_server map_saver_cli -f my_map
 
 This will create two files, the actual map file (.pgm file) and its description (YAML file). Create a folder called `maps` and copy-paste them inside (we are not checking in the maps into version control).
 
-### Running on Robile
+If done properly, your map should look something like this:
 
-In the first terminal window, launch Robile in simulation (refer to command above). In the second terminal window, launch the program:
-
-```bash
-python3 main.py
-```
-
-Lastly, you will need to start the map server and then configure + activate it. For that, first start the server:
-
-```bash
-cd maps
-ros2 run nav2_map_server map_server --ros-args -p yaml_filename:="my_map.yaml"
-```
-
-To configure and activate the map server, in another terminal window, execute the following:
-
-```bash
-ros2 lifecycle set /map_server configure
-ros2 lifecycle set /map_server activate
-```
-
-## Testing
-
-In order to run tests (they should all be in the `test` folder), you will need to set the `PYTHONPATH` variable in order for Python to be able to correctly resolve module imports.
-
-```bash
-source /opt/ros/humble/setup.bash
-export PYTHONPATH="${pwd}:$PYTHONPATH"
-```
-
-Do not use the `unittest` library module, instead, run test files as normal Python programs.
+![Our group's map for simulation](./assets/amr-simulation-map.png)
